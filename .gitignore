@@ -1,0 +1,5 @@
+.pio
+.swp
+# config.h contains our sensitive data!
+src/config.h
+.vscode/
