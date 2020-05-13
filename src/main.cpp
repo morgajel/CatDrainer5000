@@ -1,87 +1,47 @@
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
-#include <Servo.h>
+#include <EEPROM.h>
+#include <ctype.h>
 #include "config.h"
+#include "html_index.h"
+#include "laser.h"
 
 
 // Initialize Constants
-const int laserPin = 11;
-const int panPin = 23;
-const int tiltPin = 22;
-const int serverPort = 80;
-
-// Volatile states
-volatile int laserState = LOW;
-volatile int currentTilt = 0;
-volatile int currentPan = 0;
-volatile int destTilt = 90;
-volatile int destPan = 90;
-
-int panMin = 50;
-int panMax = 160;
-int tiltMin = 30;
-int tiltMax = 100;
-
+const int laserPin = 32; // The laser connects to this pin and ground
+const int tiltPin = 25; // The data line of the servo connects here
+const char* hostname = "Catdrainer2500";
+const int serverPort = 80; //sorry, just simple HTTP.
 
 // Complex stuff
 WebServer server(serverPort);
-Servo pan_servo;
-Servo tilt_servo;
+Servo servo;
+String url;
+Laser laser(laserPin, servo);
 
-int move_direction(int current, int target, int step, int min_size, int max_size){
-  int result = target; // default to target.
 
-  if (target <= min_size){
-    result = min_size;
-  } else if (target >=max_size){
-    result = max_size;  
-  } else if (target < (current - step)){
-    result =  (current - step) ;
-  } else if (target > (current + step)){
-    result = (current + step) ;
-  }
-  return result;
-}
-
-void move_laser(int newPan, int newTilt, int step){
-
-  // If the new location is within our acceptable region
-  int pan_val = move_direction(currentPan, newPan, step, panMin, panMax);
-  pan_servo.write(pan_val);
-  currentPan = currentPan;
-  int tilt_val = move_direction(currentTilt, newTilt, step, tiltMin, tiltMax);
-  tilt_servo.write(tilt_val);
-  currentTilt = tilt_val;
+void automated(){
+  laser.laserOn();
+  laser.move(0,1);
   delay(2000);
-
-}
-
-// Prepare the Lasers
-void laserOn(){
-  digitalWrite(laserPin, HIGH);
-}
-
-void laserOff(){
-  digitalWrite(laserPin, LOW);
-}
-
-void automate(){
-  laserOn();
-  move_laser(0,0,1);
-  delay(2000);
-  move_laser(180,180,1);
-  laserOff();
-
+  laser.move(180,1);
+  laser.move(0,1);
+  delay(500);
+  laser.move(180,2);
+  laser.move(0,2);
+  delay(500);
+  laser.move(180,10);
+  laser.move(0,10);
+  laser.laserOff();
 }
 
 void connectToWifi(void){
   //Configure WIFI using config.h values
   WiFi.mode(WIFI_AP_STA);
-  WiFi.setHostname("CatDrainer5000");
+  WiFi.setHostname(hostname);
   delay(2000);
   Serial.println("Mac Addr:");
   Serial.println(String(WiFi.macAddress()));
@@ -101,7 +61,7 @@ void connectToWifi(void){
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-
+  url = "http://" + String(WiFi.localIP()) + "/"  ;
   if (MDNS.begin("esp32")) {
     Serial.println("MDNS responder started");
   }
@@ -109,64 +69,74 @@ void connectToWifi(void){
 }
 
 
-// Setup the initial values.
+
+void handleRequest(){
+  // when /move is called, this method moves the laser.
+  String message = "";
+  int tilt = laser.getTilt();
+  int step = 10;
+  if (server.arg("tilt") != "") {
+    tilt = server.arg("tilt").toInt();
+  }
+  if (server.arg("step") != "") {
+    step = server.arg("step").toInt();
+  }
+  laser.move(tilt,step);
+  server.send(200, "text/html", "OK.");          //Returns the HTTP response
+}
+
+//##########################################################################//
+//                             Setup
 void setup(void) {
   // Set our Serial port rate
   Serial.begin(115200);
   // Prep our laser pin
-  pinMode(laserPin, OUTPUT);
-  pan_servo.attach(panPin); 
-  tilt_servo.attach(tiltPin);
+  servo.attach(tiltPin);
+  laser.servo = servo;
+  // read tiltMax from storage, make sure it's <180
+  int tiltMax = 180;
+  EEPROM.get(0,tiltMax);
+  laser.setMax(tiltMax);
+  // read tiltMin from storage, make sure it's > 0
+  int tiltMin = 0;
+  EEPROM.get(0,tiltMin);
+  laser.setMin(tiltMin);
+  delay(1000);
+  laser.servo.write(30);
   // Wait for connection
   connectToWifi();
 
 // Define all of these handlers for incoming URLs as anonymous lambda functions
   server.on("/", [](){
-      String data = "<!DOCTYPE html> <html>\n";
-    data += "<head>\n";
-    data += "  <style>\n";
-    data += "    .center {margin: auto; font-size: 80px; font-weight: heavy; text-align:center;}\n";
-    data += "  </style>\n";
-    data += "</head>\n";
-    data += "<body>\n";
-    data += "  <div class='center'> \n";
-    data += "    <a href='/forward'>&#9650;</a></div>\n";
-    data += "  <div class='center'> \n";
-    data += "    <a href='/left'>&#9664;</a>\n";
-    data += "    <a href='/stop'>&#128721;</a>\n";
-    data += "    <a href='/right'>&#9654;</a></div>\n";
-    data += "  <div class='center'> \n";
-    data += "    <a href='/backward'>&#9660;</a>\n";
-    data += "  </div>\n";
-    data += "</body></html>";
-    String message = "<!DOCTYPE html>\n";
-    message += "<html>" ;
-    message += "<head>" ;
-    message += "</head>" ;
-    message += "<body>" ;
-    message += "<b>Catdrainer 5000:</b> now with more Servos." ;
-    message += "</body></html>";
-    server.send(200, "text/html", message);
+    server.send(200, "text/html", indexPage);
   });
 
-  server.on("/automate", []() {
-     server.send(200, "text/plain", "Turn Left");
-     
+  server.on("/automated", []() {
+     server.send(200, "text/plain", "Beep Boop, running automatically.");
+     automated();
   });
-  
+
+  server.on("/toggleLaser", []() {
+    if (laser.getState() == LOW) {
+      server.send(200, "text/plain", "armed");
+      laser.laserOn();
+    } else {
+      server.send(200, "text/plain", "disarmed");
+      laser.laserOff();
+    }
+  });
+
+  server.on("/move", handleRequest);   //Associate the handler function to the path
+
 //   server.onNotFound(handleNotFound);
 
   server.begin();
   Serial.println("HTTP server started");
-  delay(1000);
-  automate();
-  Serial.println("oof");
+  digitalWrite(laserPin, HIGH);
 }
 
 
 // Note, the server handleClient does all the heavy lifting.
 void loop(void) {
-  server.handleClient();
-  
-  
+  server.handleClient();  
 }
