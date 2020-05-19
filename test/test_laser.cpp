@@ -1,13 +1,15 @@
-// #include <Arduino.h>
-// #include "laser.h"
-// #include <unity.h>
+#include <Arduino.h>
+#include <unity.h>
+#include "laser.h"
+#include <Servo.h>
+
+Servo servo;
+Laser laser(13, servo);
+
+void test_servo(void) {
 
 
-
-// void setUp(void) {
-//     // set stuff up here
-//     Laser laser(13);    
-// }
+}
 
 // void tearDown(void) {
 //     // clean stuff up here
@@ -19,16 +21,14 @@
 //     TEST_ASSERT_NULL(laser.laserOn());
 // }
 
-// void setup()
-// {
-//     delay(2000); // service delay
-//     UNITY_BEGIN();
+ void setup(){
+     delay(2000); // service delay
+     UNITY_BEGIN();
 
-//     RUN_TEST(test_string_concat);
-    
-//     UNITY_END(); // stop unit testing
-// }
+     RUN_TEST(test_servo);
 
-// void loop()
-// {
-// }
+     UNITY_END(); // stop unit testing
+}
+
+void loop(){
+}

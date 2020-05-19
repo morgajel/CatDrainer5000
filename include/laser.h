@@ -11,11 +11,14 @@ class Laser
     void laserOff();
     int setMin(int newMax);
     int setMax(int newMin);
-    void move(int dest, int stepSize);
+    void move(int destination, int speed);
     int limitTilt(int tilt);
     int setTilt(int tilt);
     int getState();
     int getTilt();
+    void test();
+    void stutters(int degree, int speed, int stutterCount);
+    void automate(int moves);
   public:
     Servo servo;
   private:

@@ -13,8 +13,12 @@ const char* indexPage = R"=====(
             });
             $(document).ready(function(){
                 $("#automated").click(function(){
-                    $.ajax({url: "/automated", async: false, success: function(result){
-                        $("#automatedResult").html(result);
+                    $.ajax({
+                        url: "/automate?moves=" + $("#moves").value,
+                        async: false,
+
+                        success: function(result){
+                            $("#automatedResult").html(result);
                     }});
                 });
             });
@@ -25,7 +29,12 @@ const char* indexPage = R"=====(
         <br/>
         <button type="button" id="toggleLaser">Toggle Laser</button> <span id="toggleResult"></span>
         <br/>
+        <form>
+        <label for="quantity">Moves (between 1 and 20):</label>
+        <input type="number" id="moves" name="quantity" min="1" max="20" value="10"/>
         <button type="button" id="automated">automated run</button> <span id="automatedResult"></span>
+        </form>
+
 </body></html>
 
 )=====";

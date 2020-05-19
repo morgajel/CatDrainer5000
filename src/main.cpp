@@ -9,7 +9,6 @@
 #include "html_index.h"
 #include "laser.h"
 
-
 // Initialize Constants
 const int laserPin = 32; // The laser connects to this pin and ground
 const int tiltPin = 25; // The data line of the servo connects here
@@ -21,7 +20,6 @@ WebServer server(serverPort);
 Servo servo;
 String url;
 Laser laser(laserPin, servo);
-
 
 void automated(){
   laser.laserOn();
@@ -47,13 +45,13 @@ void connectToWifi(void){
   Serial.println(String(WiFi.macAddress()));
   WiFi.begin(ssid, password);
   Serial.println(WiFi.isConnected());
-  
+
   while ( WiFi.status() != WL_CONNECTED) {
     delay(500);
-    
+
     Serial.print(".");
     Serial.printf("%i" , WiFi.status());
-    
+
   }
 
   Serial.println("");
@@ -65,34 +63,37 @@ void connectToWifi(void){
   if (MDNS.begin("esp32")) {
     Serial.println("MDNS responder started");
   }
-  
+
 }
 
-
+void(* resetFunc) (void) = 0; //declare reset function @ address 0
+//  ESP.restart()  TODO this might be a better solution.
 
 void handleRequest(){
   // when /move is called, this method moves the laser.
   String message = "";
-  int tilt = laser.getTilt();
-  int step = 10;
-  if (server.arg("tilt") != "") {
-    tilt = server.arg("tilt").toInt();
+  if (server.arg("tilt") != "" || server.arg("step") !=""){
+    int tilt = laser.getTilt();
+    int step = 10;
+    if (server.arg("tilt") != "") {
+      tilt = server.arg("tilt").toInt();
+    }
+    if (server.arg("step") != "") {
+      step = server.arg("step").toInt();
+    }
+    laser.move(tilt,step);
   }
-  if (server.arg("step") != "") {
-    step = server.arg("step").toInt();
-  }
-  laser.move(tilt,step);
   server.send(200, "text/html", "OK.");          //Returns the HTTP response
 }
 
-//##########################################################################//
-//                             Setup
-void setup(void) {
-  // Set our Serial port rate
-  Serial.begin(115200);
-  // Prep our laser pin
-  servo.attach(tiltPin);
-  laser.servo = servo;
+void handleMoves(){
+String message = "";
+int moves = server.arg("moves").toInt();
+laser.automate(moves);
+server.send(200, "text/html", "OK.");          //Returns the HTTP response
+}
+
+void initTiltRange(){
   // read tiltMax from storage, make sure it's <180
   int tiltMax = 180;
   EEPROM.get(0,tiltMax);
@@ -101,19 +102,28 @@ void setup(void) {
   int tiltMin = 0;
   EEPROM.get(0,tiltMin);
   laser.setMin(tiltMin);
-  delay(1000);
-  laser.servo.write(30);
+
+}
+
+//##########################################################################//
+//                             Setup
+void setup(void) {
+  // Set our Serial port rate
+  Serial.begin(115200);
+  // Prep our laser pin
+  randomSeed(analogRead(0));
+  servo.attach(tiltPin);
+  laser.servo = servo;
+  initTiltRange();
   // Wait for connection
   connectToWifi();
 
 // Define all of these handlers for incoming URLs as anonymous lambda functions
+//=============================   /   =============================
   server.on("/", [](){
+    //server.send(200, "text/html", indexPage);
+    server.sendHeader("Connection", "close");
     server.send(200, "text/html", indexPage);
-  });
-
-  server.on("/automated", []() {
-     server.send(200, "text/plain", "Beep Boop, running automatically.");
-     automated();
   });
 
   server.on("/toggleLaser", []() {
@@ -125,18 +135,30 @@ void setup(void) {
       laser.laserOff();
     }
   });
+  server.on("/automate", []() {
+    laser.laserOn();
+    laser.automate(200);
+    laser.laserOff();
+  });
+  server.on("/test", []() {
+    laser.laserOn();
+    server.send(200, "text/plain", "testing 123...");
+    laser.test();
 
-  server.on("/move", handleRequest);   //Associate the handler function to the path
+  });
+  //server.on("/automate", handleRequest);   //Associate the handler function to the path
+  server.on("/move", handleMoves);   //Associate the handler function to the path
+  server.on("/reset", resetFunc);
 
 //   server.onNotFound(handleNotFound);
 
   server.begin();
   Serial.println("HTTP server started");
-  digitalWrite(laserPin, HIGH);
+  laser.setMax(160);
+  laser.setMin(30);
 }
-
 
 // Note, the server handleClient does all the heavy lifting.
 void loop(void) {
-  server.handleClient();  
+  server.handleClient();
 }
