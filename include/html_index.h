@@ -1,4 +1,4 @@
-const char* indexPage = R"=====(
+<!--const char* indexPage = R"=====(-->
 <!DOCTYPE html>
 <html>
     <head>
@@ -25,7 +25,13 @@ const char* indexPage = R"=====(
         </script>
     </head>
     <body>
-        <b>Catdrainer 5000:</b> now with more Servos.
+           <h1>Catdrainer 2500</h1>
+
+           <nav>
+            <input type="range" min="0", max="180" >
+
+           </nav>
+    </section>
         <br/>
         <button type="button" id="toggleLaser">Toggle Laser</button> <span id="toggleResult"></span>
         <br/>
@@ -34,7 +40,7 @@ const char* indexPage = R"=====(
         <input type="number" id="moves" name="quantity" min="1" max="20" value="10"/>
         <button type="button" id="automated">automated run</button> <span id="automatedResult"></span>
         </form>
-
+    
 </body></html>
 
 )=====";

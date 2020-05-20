@@ -1,3 +1,4 @@
+*.FCStd1
 .pio
 .swp
 # config.h contains our sensitive data!
