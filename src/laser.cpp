@@ -12,6 +12,7 @@ Laser::Laser(int lPin, Servo lServo) {
   _tiltMin = 0;
   _tiltMax = 180;
   _currentTilt = 90;  // Start the neutral position
+  _remaining_moves = 0;
   digitalWrite(lPin, _state);
 }
 
@@ -47,6 +48,9 @@ int Laser::limitTilt(int tilt){
 }
 int Laser::getState(){
     return _state;
+}
+int Laser::getRemainingMoves(){
+    return _remaining_moves;
 }
 int Laser::getTilt(){
     return servo.read();
@@ -123,7 +127,7 @@ void Laser::test(){
 }
 void Laser::automate(int moves){
   Serial.println("automating...");
-  for (int i=0; i < moves; i++){
+  for (_remaining_moves = moves; _remaining_moves > 0 ; _remaining_moves--){
     int destination = random(_tiltMax - _tiltMin) + _tiltMin;
     int speed = random(500,10000);
     int stutterCount = random(2, 10);

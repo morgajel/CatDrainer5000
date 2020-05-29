@@ -10,8 +10,8 @@
 #include "laser.h"
 
 // Initialize Constants
-const int laserPin = 32; // The laser connects to this pin and ground
-const int tiltPin = 25; // The data line of the servo connects here
+const int laserPin = 21; // The laser connects to this pin and ground
+const int tiltPin = 13; // The data line of the servo connects here
 const char* hostname = "Catdrainer2500";
 const int serverPort = 80; //sorry, just simple HTTP.
 
@@ -21,76 +21,57 @@ Servo servo;
 String url;
 Laser laser(laserPin, servo);
 
-void automated(){
-  laser.laserOn();
-  laser.move(0,1);
-  delay(2000);
-  laser.move(180,1);
-  laser.move(0,1);
-  delay(500);
-  laser.move(180,2);
-  laser.move(0,2);
-  delay(500);
-  laser.move(180,10);
-  laser.move(0,10);
-  laser.laserOff();
-}
-
+//======================================================
 void connectToWifi(void){
   //Configure WIFI using config.h values
   WiFi.mode(WIFI_AP_STA);
   WiFi.setHostname(hostname);
   delay(2000);
-  Serial.println("Mac Addr:");
-  Serial.println(String(WiFi.macAddress()));
+  Serial.println("Mac Addr: " + (String)WiFi.macAddress());
   WiFi.begin(ssid, password);
-  Serial.println(WiFi.isConnected());
 
+  Serial.print("Attempting WiFi connection");
   while ( WiFi.status() != WL_CONNECTED) {
     delay(500);
-
     Serial.print(".");
-    Serial.printf("%i" , WiFi.status());
-
   }
-
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  url = "http://" + String(WiFi.localIP()) + "/"  ;
+  Serial.println("  Connected to " + (String)ssid);
+  Serial.println("IP address: " + WiFi.localIP().toString());
+  url = "http://" + WiFi.localIP().toString() + "/"  ;
   if (MDNS.begin("esp32")) {
-    Serial.println("MDNS responder started");
+    Serial.println("MDNS responder started.");
   }
-
 }
 
+//======================================================
 void(* resetFunc) (void) = 0; //declare reset function @ address 0
 //  ESP.restart()  TODO this might be a better solution.
 
-void handleRequest(){
-  // when /move is called, this method moves the laser.
-  String message = "";
-  if (server.arg("tilt") != "" || server.arg("step") !=""){
-    int tilt = laser.getTilt();
-    int step = 10;
-    if (server.arg("tilt") != "") {
-      tilt = server.arg("tilt").toInt();
-    }
-    if (server.arg("step") != "") {
-      step = server.arg("step").toInt();
-    }
-    laser.move(tilt,step);
-  }
-  server.send(200, "text/html", "OK.");          //Returns the HTTP response
+void handleNotFound(){
+  server.send(404, "text/html", "that's not right.");          //Returns the HTTP response
 }
 
-void handleMoves(){
-String message = "";
-int moves = server.arg("moves").toInt();
-laser.automate(moves);
-server.send(200, "text/html", "OK.");          //Returns the HTTP response
+void handleSetTilt(){
+  String message = "";
+  int tilt = server.arg("tilt").toInt();
+  laser.setTilt(tilt);
+  server.send(200, "text/html", "tilted to " + (String)tilt);          //Returns the HTTP response
+}
+
+void handleAutomation(){
+  int moves = server.arg("moves").toInt();
+  server.send(200, "text/plain", "beep boop");
+  laser.laserOn();
+  laser.automate(moves);
+  laser.laserOff();
+}
+
+void handleStatusRequest(){
+  if (laser.getRemainingMoves()>0){
+    server.send(206, "text/json", "{\"Remaining Moves\": " + (String)laser.getRemainingMoves() + "}");
+  } else {
+    server.send(200, "text/json", "{\"Remaining Moves\": " + (String)laser.getRemainingMoves()+ "}");
+  }
 }
 
 void initTiltRange(){
@@ -106,7 +87,8 @@ void initTiltRange(){
 }
 
 //##########################################################################//
-//                             Setup
+//                                Setup                                     //
+//##########################################################################//
 void setup(void) {
   // Set our Serial port rate
   Serial.begin(115200);
@@ -118,8 +100,8 @@ void setup(void) {
   // Wait for connection
   connectToWifi();
 
+//==========================================================
 // Define all of these handlers for incoming URLs as anonymous lambda functions
-//=============================   /   =============================
   server.on("/", [](){
     //server.send(200, "text/html", indexPage);
     server.sendHeader("Connection", "close");
@@ -127,31 +109,28 @@ void setup(void) {
   });
 
   server.on("/toggleLaser", []() {
+    server.sendHeader("Connection", "close");
     if (laser.getState() == LOW) {
-      server.send(200, "text/plain", "armed");
+      server.send(200, "text/plain", "Laser armed");
       laser.laserOn();
     } else {
-      server.send(200, "text/plain", "disarmed");
+      server.send(200, "text/plain", "Laser disarmed");
       laser.laserOff();
     }
   });
-  server.on("/automate", []() {
-    laser.laserOn();
-    laser.automate(200);
-    laser.laserOff();
-  });
+
   server.on("/test", []() {
     laser.laserOn();
+    server.sendHeader("Connection", "close");
     server.send(200, "text/plain", "testing 123...");
     laser.test();
-
   });
-  //server.on("/automate", handleRequest);   //Associate the handler function to the path
-  server.on("/move", handleMoves);   //Associate the handler function to the path
+  server.on("/automate", handleAutomation);
+  server.on("/setTilt", handleSetTilt);   //Associate the handler function to the path
+  server.on("/status", handleStatusRequest);
   server.on("/reset", resetFunc);
 
-//   server.onNotFound(handleNotFound);
-
+  server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");
   laser.setMax(160);

@@ -16,6 +16,7 @@ class Laser
     int setTilt(int tilt);
     int getState();
     int getTilt();
+    int getRemainingMoves();
     void test();
     void stutters(int degree, int speed, int stutterCount);
     void automate(int moves);
@@ -27,6 +28,7 @@ class Laser
     int _tiltMin;
     int _tiltMax;
     int _currentTilt;
+    int _remaining_moves;
 };
 
 #endif
