@@ -24,7 +24,7 @@ const char* indexPage = R"=====(
             $(document).ready(function(){
                 $("#automated").click(function(){
                     $.ajax({
-                        url: "/automate?moves=" + $("#moves").value,
+                        url: "/automate?moves=" + $("#moves").val(),
                         async: false,
 
                         success: function(result){
@@ -42,16 +42,16 @@ const char* indexPage = R"=====(
     <nav>
         <a href="/">home</a>
         <a href="/automate?moves=3">Automate 3 moves</a>
-        <a href="/settilt?tilt=0">tilt to beginning</a>
-        <a href="/settilt?tilt=90">tilt to middle</a>
-        <a href="/settilt?tilt=180">tilt to end</a>
+        <a href="/settilt?tilt=700">tilt to beginning</a>
+        <a href="/settilt?tilt=1500">tilt to middle</a>
+        <a href="/settilt?tilt=2300">tilt to end</a>
         <a href="/status">moves in queue</a>
         <a href="/reset">reboot device</a>
     </nav>
     <section>
         <h2>Basic Controls</h2>
         <label>Tilt Degree</label>
-        <input type="range" min="0", max="180" id="tiltRange">
+        <input type="range" min="700", max="2300" id="tiltRange">
         <button type="button" id="toggleLaser">Toggle Laser</button>
     </section>
     <aside>
@@ -62,7 +62,7 @@ const char* indexPage = R"=====(
     <section>
         <h2> Automation Testing</h2>
         <label for="quantity">Moves</label>
-        <input type="number" id="moves" name="quantity" min="1" max="20" value="10"/>
+        <input type="number" id="moves" name="quantity" min="1" max="100" value="50"/>
         <button type="button" id="automated">execute automation</button>
         </form>
     </section>

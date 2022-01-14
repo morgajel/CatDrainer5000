@@ -6,12 +6,13 @@
 #include <EEPROM.h>
 #include <ctype.h>
 #include "config.h"
+#include "ota.h"
 #include "html_index.h"
 #include "laser.h"
 
-// Initialize Constants
-const int laserPin = 21; // The laser connects to this pin and ground
-const int tiltPin = 13; // The data line of the servo connects here
+// Ilnitialize Constants
+const int laserPin = GPIO_NUM_16; // The laser connects to this pin and ground
+const int tiltPin = GPIO_NUM_5; // The data line of the servo connects here
 const char* hostname = "Catdrainer2500";
 const int serverPort = 80; //sorry, just simple HTTP.
 
@@ -28,7 +29,7 @@ void connectToWifi(void){
   WiFi.setHostname(hostname);
   delay(2000);
   Serial.println("Mac Addr: " + (String)WiFi.macAddress());
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, passphrase);
 
   Serial.print("Attempting WiFi connection");
   while ( WiFi.status() != WL_CONNECTED) {
@@ -99,6 +100,7 @@ void setup(void) {
   initTiltRange();
   // Wait for connection
   connectToWifi();
+  ota_setup(hostname, password);
 
 //==========================================================
 // Define all of these handlers for incoming URLs as anonymous lambda functions
@@ -125,7 +127,7 @@ void setup(void) {
     server.send(200, "text/plain", "testing 123...");
     laser.test();
   });
-  server.on("/automate", handleAutomation);
+  server.on("/automate", handleAutomation); 
   server.on("/setTilt", handleSetTilt);   //Associate the handler function to the path
   server.on("/status", handleStatusRequest);
   server.on("/reset", resetFunc);

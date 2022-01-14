@@ -9,9 +9,9 @@ Laser::Laser(int lPin, Servo lServo) {
   servo = lServo;
   _lPin = lPin;
   _state = LOW;
-  _tiltMin = 0;
-  _tiltMax = 180;
-  _currentTilt = 90;  // Start the neutral position
+  _tiltMin = 700;
+  _tiltMax = 2300;
+  _currentTilt = 1500;  // Start the neutral position
   _remaining_moves = 0;
   digitalWrite(lPin, _state);
 }
@@ -57,7 +57,7 @@ int Laser::getTilt(){
 }
 int Laser::setTilt(int tilt){
     _currentTilt = limitTilt(tilt);
-    servo.write( _currentTilt);
+    servo.writeMicroseconds( _currentTilt);
     //Serial.printf("Trying to set to %i....now set at %i \n", _currentTilt, servo.read());
     return _currentTilt;
 }
@@ -156,7 +156,7 @@ void Laser::automate(int moves){
       default: //silent
         {
           Serial.println("taking a moment...");
-          delay(speed);
+          delay(speed/2);
           break;
         }
     }
