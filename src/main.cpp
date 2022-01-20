@@ -1,23 +1,26 @@
 #include <Arduino.h>
-#include <WiFi.h>
 #include <WiFiClient.h>
-#include <WebServer.h>
-#include <ESPmDNS.h>
+#include <ESP8266WebServer.h>
 #include <EEPROM.h>
+#include <ESP8266mDNS.h>
 #include <ctype.h>
 #include "config.h"
 #include "ota.h"
 #include "html_index.h"
 #include "laser.h"
+#include <Servo.h>
+
+
 
 // Ilnitialize Constants
-const int laserPin = GPIO_NUM_16; // The laser connects to this pin and ground
-const int tiltPin = GPIO_NUM_5; // The data line of the servo connects here
+const int laserPin = 5; // The laser connects to this pin and ground
+const int tiltPin = 4; // The data line of the servo connects here
 const char* hostname = "Catdrainer2500";
 const int serverPort = 80; //sorry, just simple HTTP.
 
 // Complex stuff
-WebServer server(serverPort);
+ESP8266WebServer server(serverPort);
+
 Servo servo;
 String url;
 Laser laser(laserPin, servo);

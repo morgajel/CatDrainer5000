@@ -1,8 +1,8 @@
 #ifndef Laser_h
 #define Laser_h
 
-#include "Arduino.h"
-#include "Servo.h"
+#include <Arduino.h>
+#include <Servo.h>
 class Laser
 {
   public:
