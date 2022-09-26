@@ -1,2 +1,2 @@
 const char* ssid = "your wifi network";
-const char* password = "something good";
+const char* passphrase = "something good";

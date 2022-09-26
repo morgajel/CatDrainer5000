@@ -103,7 +103,7 @@ void setup(void) {
   initTiltRange();
   // Wait for connection
   connectToWifi();
-  ota_setup(hostname, password);
+  ota_setup(hostname, ota_password);
 
 //==========================================================
 // Define all of these handlers for incoming URLs as anonymous lambda functions
